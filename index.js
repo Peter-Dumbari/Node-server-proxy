@@ -1,20 +1,31 @@
+// server.js
 const express = require("express");
-const { createProxyMiddleware } = require("http-proxy-middleware");
-
+const cors = require("cors");
 const app = express();
 
-app.use(
-  "/proxy",
-  createProxyMiddleware({
-    target: "https://ebook-library-taol.onrender.com", // The third-party server
-    changeOrigin: true,
-    pathRewrite: {
-      "^/proxy": "", // Remove /proxy from the path
-    },
-  })
-);
+app.use(cors());
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Proxy server is running on port ${PORT}`);
+app.get("/proxy", (req, res) => {
+  const url = req.query.url;
+  if (!url) {
+    res.status(400).send("URL is required");
+    return;
+  }
+
+  fetch(url)
+    .then((response) => response.blob())
+    .then((blob) => {
+      res.setHeader("Content-Type", "application/pdf");
+      blob.arrayBuffer().then((buffer) => {
+        res.send(Buffer.from(buffer));
+      });
+    })
+    .catch((err) => {
+      res.status(500).send("Error fetching the resource");
+    });
+});
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`CORS Proxy running on port ${port}`);
 });
